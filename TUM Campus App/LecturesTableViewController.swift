@@ -9,52 +9,44 @@
 import Sweeft
 import UIKit
 
-class LecturesTableViewController: UITableViewController, TumDataReceiver, DetailViewDelegate, DetailView {
-    
-    var lectures = [(String,[DataElement])]()
-    
-    var delegate: DetailViewDelegate?
-    
-    var currentLecture: DataElement?
-    
-    func dataManager() -> TumDataManager {
-        return delegate?.dataManager() ?? TumDataManager(user: nil)
+private func mapped(lectures: [Lecture]) -> [(String, [Lecture])] {
+    let ordered = lectures.map { $0.semester }
+    let semesters = Set(ordered).sorted(ascending: { ordered.index(of: $0) ?? ordered.count })
+    return semesters.map { semester in
+        return (semester, lectures.filter { $0.semester == semester })
     }
-    
-    func receiveData(_ data: [DataElement]) {
-        lectures.removeAll()
-        let semesters = data.reduce([String](), { (array, element) in
-            if let lecture = element as? Lecture {
-                if !array.contains(lecture.semester) {
-                    var newArray = array
-                    newArray.append(lecture.semester)
-                    return newArray
-                }
-            }
-            return array
-        })
-        for semester in semesters {
-            let lecturesInSemester = data.filter { (element: DataElement) in
-                if let lecture = element as? Lecture {
-                    return lecture.semester == semester
-                }
-                return false
-            }
-            lectures.append((semester,lecturesInSemester))
-        }
-        tableView.reloadData()
-    }
-
 }
 
-extension LecturesTableViewController {
+class LecturesTableViewController: RefreshableTableViewController<Lecture>, DetailViewDelegate, DetailView {
+    
+    override var values: [Lecture] {
+        get {
+            return lectures.flatMap { $1 }
+        }
+        set {
+            lectures = mapped(lectures: newValue)
+        }
+    }
+    
+    var lectures = [(String,[Lecture])]() {
+        didSet {
+            tableView.reloadData()
+        }
+    }
+    
+    weak var delegate: DetailViewDelegate?
+    var currentLecture: DataElement?
+    
+    func dataManager() -> TumDataManager? {
+        return delegate?.dataManager()
+    }
+    
+    override func fetch(skipCache: Bool) -> Promise<[Lecture], APIError>? {
+        return delegate?.dataManager()?.lecturesManager.fetch(skipCache: skipCache)
+    }
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        delegate?.dataManager().getLectures(self)
-        tableView.estimatedRowHeight = tableView.rowHeight
-        tableView.rowHeight = UITableViewAutomaticDimension
-        tableView.tableFooterView = UIView(frame: CGRect.zero)
     }
     
     override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
@@ -63,10 +55,6 @@ extension LecturesTableViewController {
             mvc.delegate = self
         }
     }
-    
-}
-
-extension LecturesTableViewController {
     
     override func numberOfSections(in tableView: UITableView) -> Int {
         return lectures.count

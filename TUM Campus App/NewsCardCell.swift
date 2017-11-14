@@ -7,9 +7,11 @@
 //
 
 import UIKit
+import Sweeft
 
 class NewsCardCell: CardTableViewCell {
     
+<<<<<<< HEAD
     @IBOutlet weak var detailImageView: UIImageView!
     @IBOutlet weak var titleLabel: UILabel!
     @IBOutlet weak var dateLabel: UILabel!
@@ -23,6 +25,23 @@ class NewsCardCell: CardTableViewCell {
             dateLabel.text = dateFormatter.string(from: newsItem.date as Date)
             detailImageView.image = newsItem.image
         }
+=======
+    @IBOutlet weak var sourceLabel: UILabel!
+    @IBOutlet weak var detailImageView: UIImageView!
+    @IBOutlet weak var titleLabel: UILabel!
+    @IBOutlet weak var dateLabel: UILabel!
+    
+    var binding: ImageViewBinding?
+    
+    override func setElement(_ element: DataElement) {
+        binding = nil
+        guard let newsItem = element as? News else { return }
+        sourceLabel.text = newsItem.source.title
+        sourceLabel.textColor = newsItem.source.titleColor
+        titleLabel.text = newsItem.title
+        dateLabel.text = newsItem.date.string(using: "hh:mm a - dd MMM, YYYY")
+        binding = newsItem.image.bind(to: detailImageView, default: nil)
+>>>>>>> master
     }
 
 }

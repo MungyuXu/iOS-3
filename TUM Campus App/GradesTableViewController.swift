@@ -7,50 +7,41 @@
 //
 
 import UIKit
+import Sweeft
 
-class GradesTableViewController: UITableViewController, TumDataReceiver, DetailViewDelegate, DetailView  {
-
-    var grades = [Grade]()
+class GradesTableViewController: RefreshableTableViewController<Grade>, DetailViewDelegate, DetailView  {
     
-    var delegate: DetailViewDelegate?
+    weak var delegate: DetailViewDelegate?
     
-    func dataManager() -> TumDataManager {
-        return delegate?.dataManager() ?? TumDataManager(user: nil)
+    func dataManager() -> TumDataManager? {
+        return delegate?.dataManager()
     }
     
-    func receiveData(_ data: [DataElement]) {
-        grades = data.flatMap() { $0 as? Grade }
-        tableView.reloadData()
+    override func fetch(skipCache: Bool) -> Promise<[Grade], APIError>? {
+        return delegate?.dataManager()?.gradesManager.fetch(skipCache: skipCache)
     }
-    
-}
-
-extension GradesTableViewController {
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        delegate?.dataManager().getGrades(self)
-        tableView.estimatedRowHeight = tableView.rowHeight
-        tableView.rowHeight = UITableViewAutomaticDimension
+        title = "Grades"
     }
-    
-}
-
-extension GradesTableViewController {
     
     override func numberOfSections(in tableView: UITableView) -> Int {
         return 1
     }
     
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        return grades.count
+        return values.count
+    }
+    
+    override func tableView(_ tableView: UITableView, shouldHighlightRowAt indexPath: IndexPath) -> Bool {
+        return false
     }
     
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = tableView.dequeueReusableCell(withIdentifier: "grade") as? GradeTableViewCell ?? GradeTableViewCell()
-        cell.grade = grades[indexPath.row]
+        cell.grade = values[indexPath.row]
         return cell
     }
     
 }
-

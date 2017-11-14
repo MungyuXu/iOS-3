@@ -4,54 +4,36 @@
 //
 
 import UIKit
+import Sweeft
 
-class TumSexyTableViewController: UITableViewController, DetailView {
+class TumSexyTableViewController: RefreshableTableViewController<SexyEntry>, DetailView {
     
-    var delegate: DetailViewDelegate?
+    weak var delegate: DetailViewDelegate?
     
-    var entries = [SexyEntry]()
-    
-    override func viewDidLoad() {
-        super.viewDidLoad()
-        delegate?.dataManager().getSexyEntries(self)
+    override func fetch(skipCache: Bool) -> Promise<[SexyEntry], APIError>? {
+        return delegate?.dataManager()?.tumSexyManager.fetch(skipCache: skipCache)
     }
     
     @IBAction func visit(_ sender: Any) {
-        guard let url = URL(string: "http://tum.sexy") else {
-            return
-        }
-        UIApplication.shared.open(url)
+        "http://tum.sexy".url?.open(sender: self)
     }
-    
-}
-
-extension TumSexyTableViewController {
     
     override func numberOfSections(in tableView: UITableView) -> Int {
         return 1
     }
     
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        return entries.count
+        return values.count
     }
     
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = tableView.dequeueReusableCell(withIdentifier: "sexy", for: indexPath) as? SexyEntryTableViewCell ?? SexyEntryTableViewCell()
-        cell.entry = entries[indexPath.row]
+        cell.entry = values[indexPath.row]
         return cell
     }
     
     override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-        entries[indexPath.row].open()
-    }
-    
-}
-
-extension TumSexyTableViewController: TumDataReceiver {
-    
-    func receiveData(_ data: [DataElement]) {
-        entries = data.mapped()
-        tableView.reloadData()
+        values[indexPath.row].open(sender: self)
     }
     
 }

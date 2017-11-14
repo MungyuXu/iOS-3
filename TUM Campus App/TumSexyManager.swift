@@ -6,30 +6,48 @@
 //  Copyright © 2017 LS1 TUM. All rights reserved.
 //
 
-import Alamofire
-import SwiftyJSON
 import Sweeft
+import Fuzzi
 
-final class TumSexyManager: Manager {
+final class TumSexyManager: CachedManager, SearchManager {
     
-    let url: String
+    typealias DataType = SexyEntry
     
-    init(url: String = "http://json.tum.sexy") {
-        self.url = url
+    var config: Config
+    var tree: SearchTree<SexyEntry>?
+    
+    var requiresLogin: Bool {
+        return false
     }
     
-    convenience init(mainManager: TumDataManager) {
-        self.init()
+    var defaultMaxCache: CacheTime {
+        return .time(.aboutOneWeek)
     }
     
-    func fetchData(_ handler: @escaping ([DataElement]) -> ()) {
-        Alamofire.request(url).responseJSON { response in
-            if let value = response.result.value,
-                let items = JSON(value).dictionary {
-                
-                let links = items.flatMap(SexyEntry.init).map { $0 as DataElement }
-                handler(links)
+    var categoryKey: SearchResultKey {
+        return .sexy
+    }
+    
+    init(config: Config) {
+        self.config = config
+    }
+    
+    func search(query: String) -> Response<[SexyEntry]> {
+        guard let tree = tree else {
+            return fetch().flatMap { entries in
+                self.tree = entries.searchTree()
+                return self.search(query: query)
             }
+        }
+        return async(runQueue: .global()) {
+            return tree.search(query: query)
+        }
+    }
+    
+    func fetch(maxCache: CacheTime) -> Response<[SexyEntry]> {
+        return config.tumSexy.doJSONRequest(to: .sexy,
+                                            maxCacheTime: maxCache).map { (json: JSON) in
+            return json.dict ==> SexyEntry.init
         }
     }
     
